@@ -1,7 +1,8 @@
 #include<opencv2/opencv.hpp>
 #include<iostream>
 #include<conio.h>           // may have to modify this line if not using Windows
-
+//Attention : le fond de l'image a supperposé ne doit pas etre transparent mais plutot 
+//d'une couleur uni qui'nest pas present sur l'image !!
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main() {
 	IplImage *imgOriginal;
