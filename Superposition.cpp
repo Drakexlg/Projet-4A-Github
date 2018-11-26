@@ -7,17 +7,17 @@ using namespace cv;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main() {
 	IplImage *imgBgnd1;
-	imgBgnd1 = cvLoadImage("bgnd1.png");          // open image
+	imgBgnd1 = cvLoadImage("Final/bgnd1.png");          // open image
 	IplImage *imgBgnd2;
-	imgBgnd2 = cvLoadImage("bgnd21.png");   //Obstacle du premier plan
+	imgBgnd2 = cvLoadImage("Final/bgnd21.png");   //Obstacle du premier plan
 	IplImage *imgBgnd3;
-	imgBgnd3 = cvLoadImage("bgnd31.png");
+	imgBgnd3 = cvLoadImage("Final/bgnd31.png");
 	IplImage *imgBgnd4;
-	imgBgnd4 = cvLoadImage("bgnd41.png");          // open image
+	imgBgnd4 = cvLoadImage("Final/bgnd41.png");          // open image
 	IplImage *imgBgnd5;
-	imgBgnd5 = cvLoadImage("bgnd51.png");   //Obstacle du premier plan
+	imgBgnd5 = cvLoadImage("Final/bgnd51.png");   //Obstacle du premier plan
 	IplImage *imgBgnd6;
-	imgBgnd6 = cvLoadImage("bgnd61.png");
+	imgBgnd6 = cvLoadImage("Final/bgnd61.png");
 
 	//Masques :
 	IplImage *maskbgnd2;
@@ -52,7 +52,7 @@ int main() {
 
 	//Declaration rendu final
 	IplImage *Rendu;
-	Rendu = cvLoadImage("bgnd1.png");
+	Rendu = cvLoadImage("Final/bgnd1.png");
 	
 	//Pour faire changer la valeur de i : rester appuyer sur une touche 
 	
@@ -92,7 +92,7 @@ int main() {
 
 		Mat mtx = cv::cvarrToMat(Rendu);
 		
-		cout << "M = " << endl << " " << mtx << endl << endl;
+		//cout << "M = " << endl << " " << mtx << endl << endl;
 
 
 
