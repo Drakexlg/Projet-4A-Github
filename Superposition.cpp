@@ -1,27 +1,31 @@
 #include<opencv2/opencv.hpp>
 #include<iostream>
-#include<conio.h>           // may have to modify this line if not using Windows
+#include<conio.h>
 
 using namespace std;
 using namespace cv;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main() {
-	IplImage *Rendu;
-	Rendu = cvLoadImage("Final/bgnd1.png");          // open image
-	IplImage *imgBgnd2;
-	imgBgnd2 = cvLoadImage("Final/bgnd2.png");   //Obstacle du premier plan
-	IplImage *imgBgnd3;
+	//Création d'objets pouvant contenir une matrice de pixels (une image) et permettant la modification de celle-ci
+	IplImage *Rendu,*imgBgnd2,*imgBgnd3,*imgBgnd4,*imgBgnd5,*imgBgnd6;
+  //copie dans les objets de type IplImage le contenu des images situés à l'adresse indiquée
+	Rendu = cvLoadImage("Final/bgnd1.png");
+	imgBgnd2 = cvLoadImage("Final/bgnd2.png");
 	imgBgnd3 = cvLoadImage("Final/bgnd3.png");
-	IplImage *imgBgnd4;
-	imgBgnd4 = cvLoadImage("Final/bgnd4.png");          // open image
-	IplImage *imgBgnd5;
-	imgBgnd5 = cvLoadImage("Final/bgnd5.png");   //Obstacle du premier plan
-	IplImage *imgBgnd6;
+	imgBgnd4 = cvLoadImage("Final/bgnd4.png");
+	imgBgnd5 = cvLoadImage("Final/bgnd5.png");
 	imgBgnd6 = cvLoadImage("Final/bgnd6.png");
 
 	//Masques :
-	IplImage *maskbgnd2;
-	maskbgnd2 = cvCreateImage(cvGetSize(imgBgnd2), 8, 1);
+	IplImage *maskbgnd2;  //création d'un objet de type image (le masque est une image)
+
+	/*cvCreateImage : transforme le type IplImageen un "réceptacle" pour une image particulière
+	Arguments de cvCreateImage : (size,color_depth,channels)
+	Size : largeur et longueur de l'image (en nombre de pixels)
+	Color_depth : nombre de valeurs que peut prendre une couleur ex: pour 8 bits le rouge,le vert et le bleu seront codés sur 256 valeurs
+	channels : "http://images.math.cnrs.fr/le-traitement-numerique-des-images.html*   	*/
+	
+	maskbgnd2 = cvCreateImage(cvGetSize(imgBgnd2), 8, 1);  //transformation du masque
 	cvInRangeS(imgBgnd2, cvScalar(0.0, 255.0, 76.0), cvScalar(0.0, 255.0, 76.0), maskbgnd2);//Vert  BGR!!
 	cvNot(maskbgnd2, maskbgnd2);
 
