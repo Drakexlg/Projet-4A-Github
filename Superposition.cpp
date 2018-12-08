@@ -20,7 +20,7 @@ int main() {
 	imgBgnd6 = imread("Textures/bgnd6.png");
 	imgFond = imread("Textures/black_bgnd.png");
 	ronds = imread("Textures/ronds.png");
-
+	
 	//conversion de toutes les tesxtures en HSV pour effectuer le traitement des masques
 	cvtColor(imgFond, fond_hsv, COLOR_BGR2HSV);
 	cvtColor(imgBgnd6, bgnd6_hsv, COLOR_BGR2HSV);
@@ -55,20 +55,25 @@ int main() {
 	//positionnement dans le rectangle intérieur du fond (équivalent de imgsetROI)
 	Mat subrendu = fond_hsv(cvRect(64, 36, 1152, 648));
 
-	//Copie des masques par dessus le fond ce qui créé la superposition de tous les masques
+	//Copie des masques par dessus le fond ce qui créé la superposition de tous les masques 
 	rendu_hsv.copyTo(subrendu);
 	bgnd6_hsv.copyTo(subrendu, MaskBgnd6_HSV);
 	bgnd5_hsv.copyTo(subrendu, MaskBgnd5_HSV);
 	bgnd4_hsv.copyTo(subrendu, MaskBgnd4_HSV);
 	bgnd3_hsv.copyTo(subrendu, MaskBgnd3_HSV);
 	bgnd2_hsv.copyTo(subrendu, MaskBgnd2_HSV);
-	round_hsv.copyTo(fond_hsv, MaskRound_hsv); //copie des ronds violets par dessus l'image
+	round_hsv.copyTo(fond_hsv, MaskRound_hsv); //copie des ronds violets par dessus l'image 
 
 	//reconversion du rendu final en RGB pour l'affichage
 	cvtColor(fond_hsv, Rendu, COLOR_HSV2BGR);
 
 	imshow("finalrendurgb", Rendu);
+	
+	cvNamedWindow("Name", CV_WINDOW_AUTOSIZE);
+	imshow("Name", Rendu);
+	moveWindow("Name", 1920,-32);
 
+	
 	cv::waitKey(0);     //l'appui sur n'importe quelle touche fera interrompre le programme
 
 	return(0);
