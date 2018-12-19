@@ -17,7 +17,7 @@ Mat remove_noise(Mat img)
 	threshold(img, difference, 200, 255, CV_8UC1);
 	//Eliminer le bruit
 	erode(difference, difference, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-	dilate(difference, difference, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7)));
+	dilate(difference, difference, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(6, 6)));
 
 
 	dilate(difference, difference, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
@@ -192,7 +192,7 @@ int main()
 		cv::imshow("cam", cameraFrame);
 
 
-		mask_ = mask(cameraFrame, 230, 50, 110, 255, 110, 175);
+		mask_ = mask(cameraFrame, 230, 50, 110, 255, 110, 190);
 		cv::imshow("mask", mask_);
 
 		/// Find contours
