@@ -9,7 +9,7 @@ using namespace std; //On utilise un espace de noms ici
 
 using namespace cv; //On utilise un espace de noms ici
 
-//--------------------------------------------------------------------------------------
+//--------------------------------Suppression du bruit------------------------------------------------------
 
 Mat remove_noise(Mat img,int a, int b, int c, int d)
 {
@@ -29,6 +29,9 @@ Mat remove_noise(Mat img,int a, int b, int c, int d)
 	return difference;
 }
 
+
+//--------------------------------Creation du mask------------------------------------------------------
+
 Mat mask(Mat img, int l_b, int l_g, int l_r, int h_b, int h_g, int h_r)
 {
 	IplImage * ipl_img;
@@ -47,6 +50,9 @@ Mat mask(Mat img, int l_b, int l_g, int l_r, int h_b, int h_g, int h_r)
 
 	return imag;
 }
+
+
+//--------------------------------Detection ds contours des formes puis des coordonnées du centre de gravité de la forme------------------------------------------------------
 
 Mat contours_(Mat img, Mat diff)
 {
