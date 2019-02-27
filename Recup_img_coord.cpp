@@ -255,7 +255,8 @@ int main()
 					std::cout << mcreel_[i].y << endl;
 				}
 				
-				
+				//mcreel_[i].x = la coordonnée x en float 
+				//mcreel_[i].y = la coordonnée y en float 
 				
 			
 
