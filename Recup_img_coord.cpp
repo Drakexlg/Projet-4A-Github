@@ -9,7 +9,7 @@ using namespace std; //On utilise un espace de noms ici
 
 using namespace cv; //On utilise un espace de noms ici
 
-					///////////////////////////////////////////////////////////////////////////////////////////////////
+//--------------------------------------------------------------------------------------
 
 Mat remove_noise(Mat img,int a, int b, int c, int d)
 {
@@ -96,11 +96,6 @@ Mat contours_(Mat img, Mat diff)
 	//classement des points en fonction de la dimention des normes;
 	for (int i = 1; i <= 4; i = i + 1)
 	{
-
-		//std::cout << cptx;
-		//std::cout << cpty;
-		//cptx = 0;
-		//cpty = 0;
 		cpt_norm[0] = 0;
 		cpt_norm[1] = 0;
 		cpt_norm[2] = 0;
@@ -134,16 +129,7 @@ Mat contours_(Mat img, Mat diff)
 	}
 
 
-
-	/*for (int i = 1; i == 4; i++)
-	{
-		circle(diff, mc[i], 5, cv::Scalar(128, 0, 0), -1);  // dessine des cercle gris au niveau des centres d'inerties.
-	}*/
-	//imshow("test", diff);
-
-
-
-	//Découpage et remise en forme de l'image;
+	//-------------------Découpage et remise en forme de l'image;
 
 	//Repartition des centres d'inertie pour les adapter à la fonctions
 	inputQuad[0] = mclasse[3];
@@ -170,7 +156,7 @@ Mat contours_(Mat img, Mat diff)
 
 int main()
 {
-
+	//A conserver pour quand on voudra refaire du flux video
 	//cv::VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
 
 	//if (!stream1.isOpened()) { //check if video device has been initialised
@@ -183,7 +169,7 @@ int main()
 	cv::waitKey();
 
 //	while (true) {
-
+		//A conserver
 		//stream1.read(cameraFrame); 
 		//cv::imshow("cam", cameraFrame);
 
