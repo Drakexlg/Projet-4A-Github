@@ -224,8 +224,10 @@ int main()
 
 			std::cout << recadrage.rows << endl;
 			std::cout << recadrage.cols << endl;
-
-			red_color = mask(recadrage, 150, 70, 150, 170, 200, 255);
+			
+			
+			//-----------------Recupeation des coordonnée du point laser
+			red_color = mask(recadrage, 150, 70, 150, 170, 200, 255);  //creation du mask rouge
 			red_color = remove_noise(red_color, 3, 3, 5, 5	); ///a modifier pour s'ajuster a la realité.
 			cv::imshow("red", red_color);
 
@@ -233,7 +235,7 @@ int main()
 			cv::findContours(red_color, r_contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 			/// Get the moments
 			std::vector<cv::Moments> mu_(r_contours.size());
-			
+			//Verification de la presence d'un et un seule point rouge
 			for (int i = 1; i < r_contours.size(); i++)
 			{
 				if (arcLength(r_contours[i], true) > 1)   // mettre un chiffre etit ici --> contours petit!!
@@ -242,7 +244,7 @@ int main()
 					
 				}
 			}
-
+			//Si il y a un et un seul point rouge
 			if (r_contours.size() ==2)
 			{
 				std::vector<cv::Point2f> mc_(r_contours.size());
@@ -250,7 +252,7 @@ int main()
 				for (int i = 1; i < 2; i++)
 				{
 					mc_[i] = cv::Point2f(mu_[i].m10 / mu_[i].m00, mu_[i].m01 / mu_[i].m00);
-
+					// Transformer les coordonnée recuperer en coordonnée dans l'image du jeu
 					mcreel_[i] = cv::Point2f((mc_[i].x * 648) / recadrage.rows, (mc_[i].y * 1152) / recadrage.cols);
 					
 					std::cout << "  " << endl;
