@@ -25,23 +25,26 @@ Mat Rendufinal, subrendu;
 ninja ninja1, ninja2, ninja3;
 int rnd;
 
-
 Mat create_HSV(string path);
 Mat create_mask(Mat img, int l_b, int l_g, int l_r, int h_b, int h_g, int h_r);
 void update_pos(int fct, ninja *ninja_);
 
 Mat remove_noise(Mat img, int a, int b, int c, int d);
 Mat contours_(Mat img, Mat diff);
+void recup_coords();
+
+cv::VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
+int laser_x, laser_y;
 
 
 int main() {
 	//variables globales :
 
-
+	bool jeu = true;
+	bool laser = true;
 	
 	srand(time(NULL));
 	rand();
-	rnd = rand() % 3;
 	//Création d'objets pouvant contenir une matrice de pixels (une image) et permettant la modification de celle-ci
 
 	/*int posx1 = 95, posy1 = 280;
@@ -109,8 +112,43 @@ int main() {
 	ninja1 = ninja(95, 280, 2, 0, 0, rotatedD,MaskcroppedD);
 	ninja2 = ninja(329, 271, 3, 0, 1, ninja_hsv,Maskninja);
 	ninja3 = ninja(850, 324, 4, 0, 2, rotatedG,MaskcroppedG);
+
+	if (!stream1.isOpened()) { //check if video device has been initialised
+		std::cout << "cannot open camera";
+	}
+	
 	
 	/*Partie code en dehors des initialisations*/
+
+	while (jeu) {
+		//boucle du jeu qui tourne constamment jusqu'à ce que la variable jeu soit passée à false
+
+		//première étape : randomisation du ninja à afficher sur l'écran
+		rnd = rand() % 3;
+
+		//afffichage du ninja correspondant à la valeur randomisée
+		switch (rnd) {
+		case 0:
+			update_pos(0, &ninja1);
+			//update_pos(1, &ninja1);
+			break;
+		case 1:
+			update_pos(0, &ninja2);
+			//update_pos(1, &ninja2);
+			break;
+		default:
+			update_pos(0, &ninja3);
+			//update_pos(1, &ninja3);
+			break;
+		}
+
+		while (laser) {
+			recup_coords();
+
+		}
+	}
+
+
 
 
 	/*switch (rnd) {
@@ -132,52 +170,6 @@ int main() {
 	cv::waitKey(0);   //l'appui sur n'importe quelle touche fera interrompre le programme
 	*/
 	
-	
-	
-	mutex lock;
-	//thread t1(update_pos, 0, &ninja1);
-	thread t1([&lock]() {
-		lock.lock();
-		switch (rnd) {
-		case 0:
-			update_pos(0, &ninja1);
-			//update_pos(1, &ninja1);
-			break;
-		case 1:
-			update_pos(0, &ninja2);
-			//update_pos(1, &ninja2);
-			break;
-		default:
-			update_pos(0, &ninja3);
-			//update_pos(1, &ninja3);
-			break;
-		}
-	});
-	/*thread t2([&lock]() {
-		lock.lock();
-		clock_t start = time(0);
-		clock_t t2 =0;
-		while ((t2-start) < 5000) {
-			clock_t t2 = time(0);
-		}
-		lock.unlock();
-	});
-	thread t3([&lock]() {
-		lock.lock();
-		switch (rnd) {
-		case 0:
-			update_pos(1, &ninja1);
-			break;
-		case 1:
-			update_pos(1, &ninja2);
-			break;
-		case 2:
-			update_pos(1, &ninja3);
-			break;
-		}
-		lock.unlock();
-	});*/
-	t1.join();
 	//t2.join();
 	//t3.join();
 	
@@ -188,7 +180,72 @@ int main() {
 }	
 
 
+void recup_coords() {
+	cv::Mat cameraFrame;
+	Mat mask_;
+	Mat recadrage;
+	Mat red_color;
 
+	stream1.read(cameraFrame);
+	mask_ = create_mask(cameraFrame, 230, 50, 110, 255, 110, 190);  // appel à la fonction mask qui renvoie les parties de l'image dont les couleurs sont dans la plage BGR indiqué
+	mask_ = remove_noise(mask_, 5, 6, 5, 5);
+
+	std::vector<std::vector<cv::Point> > contours;
+
+	cv::findContours(mask_, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+	/// Get the moments
+	//verification de la presence de 4 points distincts dans la vidéo capturé
+	std::vector<cv::Moments> mu(contours.size());
+	int cpt = 0;
+	for (int i = 1; i < contours.size(); i++)
+	{
+		if (arcLength(contours[i], true) > 30)
+		{
+			cpt = cpt + 1;
+			mu[cpt] = moments(contours[cpt], false);
+		}
+	}
+	if (cpt == 4) {
+		// utilisation de la fontion contours_ qui renvoi la partie de l'image correspondant à l'écran de jeu
+		recadrage = contours_(cameraFrame, mask_);
+		//cv::imshow("recadrage", recadrage);
+
+		std::cout << recadrage.rows << endl;
+		std::cout << recadrage.cols << endl;
+
+		red_color = create_mask(recadrage, 150, 70, 150, 170, 200, 255);
+		red_color = remove_noise(red_color, 3, 3, 5, 5); ///a modifier pour s'ajuster a la realité.
+		cv::imshow("red", red_color);
+
+		std::vector<std::vector<cv::Point> > r_contours;
+		cv::findContours(red_color, r_contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+		/// Get the moments
+		std::vector<cv::Moments> mu_(r_contours.size());
+
+		for (int i = 1; i < r_contours.size(); i++)
+		{
+			if (arcLength(r_contours[i], true) > 1)   // mettre un chiffre etit ici --> contours petit!!
+			{
+				mu_[i] = moments(r_contours[i], false);
+			}
+		}
+
+		if (r_contours.size() == 2)
+		{
+			std::vector<cv::Point2f> mc_(r_contours.size());
+			std::vector<cv::Point2f> mcreel_(r_contours.size());
+				mc_[1] = cv::Point2f(mu_[1].m10 / mu_[1].m00, mu_[1].m01 / mu_[1].m00);
+				mcreel_[1] = cv::Point2f((mc_[1].x * 648) / recadrage.rows, (mc_[1].y * 1152) / recadrage.cols);
+				laser_y = (int) mcreel_[1].y;
+				laser_x = (int) mcreel_[1].x;
+		}
+	}
+	else {
+		laser_y = 0;
+		laser_x = 0;
+	}
+
+}
 
 //fonction permettant la récupération d'une image et sa conversion en ayant le chemin de l'image à récupérer (argument de fonction nommé path)
 Mat create_HSV(string path) {
