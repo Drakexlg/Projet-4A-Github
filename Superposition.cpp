@@ -19,11 +19,13 @@ using namespace cv;
 /*===============================================================================================
 =======================================VARIABLES GLOBALES========================================
 =================================================================================================*/
-Mat fond_hsv, bgnd6_hsv, bgnd5_hsv, bgnd4_hsv, bgnd3_hsv, bgnd2_hsv, rendu_hsv, round_hsv, ninja_hsv;
-Mat MaskBgnd6, MaskBgnd5, MaskBgnd4, MaskBgnd3, MaskBgnd2, MaskBgndFond, MaskRound, Maskcarreblack, Maskninja, MaskcroppedD, Maskcroppedtmp, MaskcroppedG;
+Mat fond_hsv, bgnd6_hsv, bgnd5_hsv, bgnd4_hsv, bgnd3_hsv, bgnd2_hsv, rendu_hsv, round_hsv, ninja_hsv, ninja_t_hsv, menu_diff_hard_hsv, menu_diff_medium_hsv, menu_diff_easy_hsv;
+Mat menu_main_hsv, menu_settings_hsv;
+Mat MaskBgnd6, MaskBgnd5, MaskBgnd4, MaskBgnd3, MaskBgnd2, MaskBgndFond, MaskRound, Maskcarreblack, Maskninja, MaskcroppedD, Maskcroppedtmp, MaskcroppedG, Maskninja_t;
 Mat Rendufinal, subrendu;
-ninja ninja1, ninja2, ninja3;
-int rnd;
+ninja ninja1, ninja2, ninja3, ninja4, ninja5, ninja6, ninja7, ninja8, ninja9;
+int rnd=0, touche = 0, score = 0;
+string strscore;
 
 Mat create_HSV(string path);
 Mat create_mask(Mat img, int l_b, int l_g, int l_r, int h_b, int h_g, int h_r);
@@ -36,38 +38,55 @@ void recup_coords();
 cv::VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
 int laser_x, laser_y;
 
+Point a(100, 67);  //positionnement de la zone de texte du score
+Point b(95, 40);  //positionnement du haut gauche du rectangle de fond des scores
+Point c(180, 75);  //positionnement du bas droit du rectangle de fond des scores
+Scalar colortext(125, 255, 0);  //couleur du texte des scores
+Scalar colorrect(150, 150, 150);  //couleur du rectangle de fond des scores
 
 int main() {
+	strscore = to_string(score);
+	cvNamedWindow("Game", CV_WINDOW_AUTOSIZE);
+	moveWindow("Game", 500, -32);
 	//variables globales :
+	laser_x = 400;
+	laser_y = 400;
+	bool jeu = false; //variable de boucle du jeu
+	bool laser = false; //variable de boucle de récupération des coordonnées laser
+	bool menu = true; //variable de boucle du menu
+	bool settings = false; //variable de boucle des réglages
+	int ninja_actif = 0;
+	int tempo_out = 0,tempo_max=100;
+	int level = 0; //niveau de difficulté : 0=easy   1=medium   2=hard
 
-	bool jeu = true;
-	bool laser = true;
-	
 	srand(time(NULL));
 	rand();
-	//Création d'objets pouvant contenir une matrice de pixels (une image) et permettant la modification de celle-ci
 
-	/*int posx1 = 95, posy1 = 280;
-	int posx2 = 329, posy2 = 271;
-	int posx3 = 850, posy3 = 324;*/
+	bool update_settings = true;
 
 	/*======================================================================================================================
 	=========================================CREATION DES TEXTURES ET DES MASQUES===========================================
 	=======================================================================================================================*/
 
 	//copie dans les objets de type IplImage le contenu des images situés à l'adresse indiquée
-	rendu_hsv = create_HSV("Textures/bgnd1.png");
+	rendu_hsv = create_HSV("Textures/bgnd1u.png");
 	fond_hsv = create_HSV("Textures/black_bgnd.png");
 	bgnd2_hsv = create_HSV("Textures/bgnd2.png");
 	bgnd3_hsv = create_HSV("Textures/bgnd3.png");
 	bgnd4_hsv = create_HSV("Textures/bgnd4.png");
-	bgnd5_hsv = create_HSV("Textures/bgnd5.png");
-	bgnd6_hsv = create_HSV("Textures/bgnd6.png");
+	bgnd5_hsv = create_HSV("Textures/bgnd5u.png");
+	bgnd6_hsv = create_HSV("Textures/bgnd6u.png");
 	round_hsv = create_HSV("Textures/ronds.png");
 	ninja_hsv = create_HSV("Textures/ninja.png");
+	ninja_t_hsv = create_HSV("Textures/ninja_t.png");
+	menu_main_hsv = create_HSV("Textures/menu.png");
+	menu_diff_hard_hsv = create_HSV("Textures/menu_diff_hard.png");
+	menu_diff_easy_hsv = create_HSV("Textures/menu_diff_easy.png");
+	menu_diff_medium_hsv = create_HSV("Textures/menu_diff_medium.png");
+
 
 	subrendu = fond_hsv(cvRect(64, 36, 1152, 648));
-	RotatedRect rect = RotatedRect(Point2f(23,24 ), Size2f(46, 48), -60);
+	RotatedRect rect = RotatedRect(Point2f(23, 24), Size2f(46, 48), -60);
 	Mat M, rotatedD, rotatedG;
 	float angle = rect.angle;
 	Size rect_size = rect.size;
@@ -75,10 +94,10 @@ int main() {
 	warpAffine(ninja_hsv, rotatedD, M, ninja_hsv.size(), INTER_CUBIC);
 
 	//Création des masques de superposition
-	
+
 
 	//Création des masques en supprimant la couleur rouge (0,255,255 en HSV)
-	MaskBgndFond = create_mask(fond_hsv,0,255,255,0,255,255);
+	MaskBgndFond = create_mask(fond_hsv, 0, 255, 255, 0, 255, 255);
 	MaskBgnd6 = create_mask(bgnd6_hsv, 0, 255, 255, 0, 255, 255);
 	MaskBgnd5 = create_mask(bgnd5_hsv, 0, 255, 255, 0, 255, 255);
 	MaskBgnd4 = create_mask(bgnd4_hsv, 0, 255, 255, 0, 255, 255);
@@ -86,6 +105,7 @@ int main() {
 	MaskBgnd2 = create_mask(bgnd2_hsv, 0, 255, 255, 0, 255, 255);
 	MaskRound = create_mask(round_hsv, 0, 255, 255, 0, 255, 255);
 	Maskninja = create_mask(ninja_hsv, 0, 255, 255, 0, 255, 255);
+	Maskninja_t = create_mask(ninja_t_hsv, 0, 255, 255, 0, 255, 255);
 
 	inRange(rotatedD, Scalar(0, 0, 0), Scalar(0, 0, 0), MaskcroppedD);
 	inRange(rotatedD, Scalar(0, 255, 255), Scalar(42, 255, 255), Maskcroppedtmp);
@@ -95,7 +115,7 @@ int main() {
 
 	//inversion des masques créés (NOIR >> BLANC && BLANC >> NOIR)
 	bitwise_not(MaskcroppedD, MaskcroppedD);
-	flip(MaskcroppedD, MaskcroppedG,1);
+	flip(MaskcroppedD, MaskcroppedG, 1);
 	flip(rotatedD, rotatedG, 1);
 
 	/*=======================================================================================================================
@@ -109,89 +129,374 @@ int main() {
 	//texture : rotatedD   ninja_hsv    rotatedG
 	//Mask: MaskcroppedD   Maskninja   MaskcroppedG
 
-	ninja1 = ninja(95, 280, 2, 0, 0, rotatedD,MaskcroppedD);
-	ninja2 = ninja(329, 271, 3, 0, 1, ninja_hsv,Maskninja);
-	ninja3 = ninja(850, 324, 4, 0, 2, rotatedG,MaskcroppedG);
+	ninja1 = ninja(95, 280, 2, 0, 0, rotatedD, MaskcroppedD);
+	ninja2 = ninja(329, 271, 3, 0, 1, ninja_hsv, Maskninja);
+	ninja3 = ninja(850, 324, 4, 0, 2, rotatedG, MaskcroppedG);
+	ninja4 = ninja(493, 347, 5, 0, 0, rotatedD, MaskcroppedD);
+	ninja5 = ninja(840, 513, 2, 0, 1, ninja_hsv, Maskninja);
+	ninja6 = ninja(595, 79, 5, 0, 1, ninja_hsv, Maskninja);
+	ninja7 = ninja(232, 527, 2, 0, 1, ninja_hsv, Maskninja);
+	ninja8 = ninja(270, 232, 5, 0, 1, ninja_hsv, Maskninja);
+	ninja9 = ninja(810, 254, 6, 0, 2, rotatedG, MaskcroppedG);
+
 
 	if (!stream1.isOpened()) { //check if video device has been initialised
 		std::cout << "cannot open camera";
+		jeu = false;
 	}
-	
-	
-	/*Partie code en dehors des initialisations*/
 
-	while (jeu) {
+
+	///Partie code en dehors des initialisations
+
+	while(true){
+		while (menu) {
+			menu_main_hsv.copyTo(subrendu);
+			round_hsv.copyTo(fond_hsv, MaskRound);
+			cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
+			imshow("Game", Rendufinal);
+			//recup_coords();
+			if (laser_x >= 339 && laser_x <= 812 && laser_y >= 196 && laser_y <= 288) {
+				menu = false;
+				jeu = true;
+			}
+			if (laser_x >= 339 && laser_x <= 812 && laser_y >= 343 && laser_y <= 435) {
+				menu = false;
+				settings = true;
+			}
+			waitKey(1);
+		}
+
+
+		int k = 0;
+
+
+		while (settings) {
+			k++;
+
+			if (k == 200) {
+				laser_x = 900;
+				laser_y = 300;
+			}
+			else if (k == 201) {
+				laser_x = 800;
+				laser_y = 800;
+			}
+			else if (k == 400) {
+				laser_x = 900;
+				laser_y = 300;
+			}
+			else if (k == 401) {
+				laser_x = 800;
+				laser_y = 800;
+			}
+			else if (k == 600) {
+				laser_x = 900;
+				laser_y = 300;
+			}
+			else if (k == 800) {
+				laser_x = 300;
+				laser_y = 300;
+			}
+			else if (k == 801) {
+				laser_x = 800;
+				laser_y = 800;
+			}
+			else if (k == 900) {
+				laser_x = 300;
+				laser_y = 300;
+			}
+			else if (k == 910) {
+				laser_x = 800;
+				laser_y = 800;
+			}
+			else if (k == 1000) {
+				laser_x = 150;
+				laser_y = 100;
+			}
+
+			//recup_coords();
+
+			if (laser_x >= 60 && laser_x <= 242 && laser_y >= 50 && laser_y <= 125) {  //si on touche la touche de retour au menu principal
+				settings = false;
+				menu = true;
+			}
+			else if (laser_x >= 224 && laser_x <= 319 && laser_y >= 269 && laser_y <= 361) {  //si on touche la touche difficulté -
+				if (level > 0) {  //possible de baisser le niveau que si il est supérieur à facile 
+					update_settings = true;
+					level--;
+				}
+			}
+			else if (laser_x >= 850 && laser_x <= 945 && laser_y >= 269 && laser_y <= 361) {  //si on touche la touche difficulté +
+				if (level < 2) {  //possible d'augmenter le niveau que si il est inférieur à difficile
+					update_settings = true;
+					level++;
+				}
+			}
+			
+			if (update_settings == true) {
+				switch (level) {
+				case 0:
+					tempo_max = 100;
+					menu_diff_easy_hsv.copyTo(subrendu);
+					round_hsv.copyTo(fond_hsv, MaskRound);
+					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
+					imshow("Game", Rendufinal);
+					break;
+				case 1:
+					tempo_max = 50;
+					menu_diff_medium_hsv.copyTo(subrendu);
+					round_hsv.copyTo(fond_hsv, MaskRound);
+					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
+					imshow("Game", Rendufinal);
+					break;
+				case 2:
+					tempo_max = 25;
+					menu_diff_hard_hsv.copyTo(subrendu);
+					round_hsv.copyTo(fond_hsv, MaskRound);
+					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
+					imshow("Game", Rendufinal);
+					break;
+				default:
+					tempo_max = 50;
+					menu_diff_medium_hsv.copyTo(subrendu);
+					round_hsv.copyTo(fond_hsv, MaskRound);
+					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
+					imshow("Game", Rendufinal);
+					break;
+				}
+				update_settings = false;
+			}
+
+
+			waitKey(1);
+			
+		}
+
+
 		//boucle du jeu qui tourne constamment jusqu'à ce que la variable jeu soit passée à false
+		while (jeu) {
+			laser = true;
 
-		//première étape : randomisation du ninja à afficher sur l'écran
-		rnd = rand() % 3;
+			//randomisation du ninja à afficher sur l'écran
+			rnd = rand() % 9;
 
-		//afffichage du ninja correspondant à la valeur randomisée
-		switch (rnd) {
-		case 0:
-			update_pos(0, &ninja1);
-			//update_pos(1, &ninja1);
-			break;
-		case 1:
-			update_pos(0, &ninja2);
-			//update_pos(1, &ninja2);
-			break;
-		default:
-			update_pos(0, &ninja3);
-			//update_pos(1, &ninja3);
-			break;
-		}
+			//affichage du ninja correspondant à la valeur randomisée
+			switch (rnd) {
+			case 0:
+				update_pos(0, &ninja1);
+				ninja_actif = 0;
+				break;
+			case 1:
+				update_pos(0, &ninja2);
+				ninja_actif = 1;
+				break;
+			case 2:
+				update_pos(0, &ninja3);
+				ninja_actif = 2;
+				break;
+			case 3:
+				update_pos(0, &ninja4);
+				ninja_actif = 3;
+				break;
+			case 4:
+				update_pos(0, &ninja5);
+				ninja_actif = 4;
+				break;
+			case 5:
+				update_pos(0, &ninja6);
+				ninja_actif = 5;
+				break;
+			case 6:
+				update_pos(0, &ninja7);
+				ninja_actif = 6;
+				break;
+			case 7:
+				update_pos(0, &ninja8);
+				ninja_actif = 7;
+				break;
+			case 8:
+				update_pos(0, &ninja9);
+				ninja_actif = 8;
+				break;
+			default:
+				update_pos(0, &ninja9);
+				ninja_actif = 8;
+				break;
+			}
 
-		while (laser) {
-			recup_coords();
+			//boucle du jeu (coeur du jeu
+			while (laser) {
+				//recup_coords();
+				tempo_out++;
 
+				//vérifie si le laser a touché le ninja et gère la rentrée avec clignotement si c'est le cas
+				switch (ninja_actif) {
+				case 0:
+					if (laser_x >= ninja1.getposx() && laser_x <= (ninja1.getposx() + 46) && laser_y >= ninja1.getposy() && laser_y <= (ninja1.getposy() + 48)) {
+						score += 100;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja1);
+						tempo_out = 0;
+						touche = 0;
+						laser = false;
+					}
+					break;
+				case 1:
+					if (laser_x >= ninja2.getposx() && laser_x <= (ninja2.getposx() + 46) && laser_y >= ninja2.getposy() && laser_y <= (ninja2.getposy() + 48)) {
+						score += 100;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja2);
+						tempo_out = 0;
+						touche = 0;
+						laser = false;
+					}
+					break;
+				case 2:
+					if (laser_x >= ninja3.getposx() && laser_x <= (ninja3.getposx() + 46) && laser_y >= ninja3.getposy() && laser_y <= (ninja3.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja3);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				case 3:
+					if (laser_x >= ninja4.getposx() && laser_x <= (ninja4.getposx() + 46) && laser_y >= ninja4.getposy() && laser_y <= (ninja4.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja4);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				case 4:
+					if (laser_x >= ninja5.getposx() && laser_x <= (ninja5.getposx() + 46) && laser_y >= ninja5.getposy() && laser_y <= (ninja5.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja5);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				case 5:
+					if (laser_x >= ninja6.getposx() && laser_x <= (ninja6.getposx() + 46) && laser_y >= ninja6.getposy() && laser_y <= (ninja6.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja6);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				case 6:
+					if (laser_x >= ninja7.getposx() && laser_x <= (ninja7.getposx() + 46) && laser_y >= ninja7.getposy() && laser_y <= (ninja7.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja7);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				case 7:
+					if (laser_x >= ninja8.getposx() && laser_x <= (ninja8.getposx() + 46) && laser_y >= ninja8.getposy() && laser_y <= (ninja8.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja8);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				case 8:
+					if (laser_x >= ninja9.getposx() && laser_x <= (ninja9.getposx() + 46) && laser_y >= ninja9.getposy() && laser_y <= (ninja9.getposy() + 48)) {
+						score++;
+						strscore = to_string(score);
+						touche = 1;
+						cout << "====================TOUCHE===================";
+						update_pos(1, &ninja9);
+						touche = 0;
+						tempo_out = 0;
+						laser = false;
+					}
+					break;
+				}
+
+				//si le laser n'a pas touché, la temporisation définit la durée au bout de laquelle le ninja rentrera
+				if (tempo_out == tempo_max) { // 100000000     si algo récup_coords => 100
+					switch (ninja_actif) {
+					case 0:
+						update_pos(1, &ninja1);
+						break;
+					case 1:
+						update_pos(1, &ninja2);
+						break;
+					case 2:
+						update_pos(1, &ninja3);
+						break;
+					case 3:
+						update_pos(1, &ninja4);
+						break;
+					case 4:
+						update_pos(1, &ninja5);
+						break;
+					case 5:
+						update_pos(1, &ninja6);
+						break;
+					case 6:
+						update_pos(1, &ninja7);
+						break;
+					case 7:
+						update_pos(1, &ninja8);
+						break;
+					case 8:
+						update_pos(1, &ninja9);
+						break;
+					default:
+						update_pos(1, &ninja9);
+						break;
+					}
+					tempo_out = 0;
+					laser = false;
+				}
+			}
 		}
 	}
-
-
-
-
-	/*switch (rnd) {
-	case 0:
-		update_pos(0, &ninja1);
-		update_pos(1, &ninja1);
-		break;
-	case 1:
-		update_pos(0, &ninja2);
-		update_pos(1, &ninja2);
-		break;
-	case 2:
-		update_pos(0, &ninja3);
-		update_pos(1, &ninja3);
-		break;
-	}
-
-	cout << rnd << endl;
-	cv::waitKey(0);   //l'appui sur n'importe quelle touche fera interrompre le programme
-	*/
-	
-	//t2.join();
-	//t3.join();
-	
-
 	cout << "return 0";
 
 	return 0;
-}	
+}
 
-
+//fonction de récupération des coordonnées du laser dans les variables laser_x et laser_y
 void recup_coords() {
 	cv::Mat cameraFrame;
 	Mat mask_;
 	Mat recadrage;
 	Mat red_color;
-
 	stream1.read(cameraFrame);
-	mask_ = create_mask(cameraFrame, 230, 50, 110, 255, 110, 190);  // appel à la fonction mask qui renvoie les parties de l'image dont les couleurs sont dans la plage BGR indiqué
+	mask_ = create_mask(cameraFrame, 200, 0, 200, 255, 100, 255);  // appel à la fonction mask qui renvoie les parties de l'image dont les couleurs sont dans la plage BGR indiqué
 	mask_ = remove_noise(mask_, 5, 6, 5, 5);
-
 	std::vector<std::vector<cv::Point> > contours;
-
+	//imshow("cam", cameraFrame);
 	cv::findContours(mask_, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 	/// Get the moments
 	//verification de la presence de 4 points distincts dans la vidéo capturé
@@ -210,12 +515,11 @@ void recup_coords() {
 		recadrage = contours_(cameraFrame, mask_);
 		//cv::imshow("recadrage", recadrage);
 
-		std::cout << recadrage.rows << endl;
-		std::cout << recadrage.cols << endl;
 
-		red_color = create_mask(recadrage, 150, 70, 150, 170, 200, 255);
-		red_color = remove_noise(red_color, 3, 3, 5, 5); ///a modifier pour s'ajuster a la realité.
-		cv::imshow("red", red_color);
+		red_color = create_mask(recadrage, 100, 100, 165, 150, 150, 255);
+		red_color = remove_noise(red_color, 5, 1, 1, 5); ///a modifier pour s'ajuster a la realité.
+		//erode(red_color, red_color, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3)));
+		//cv::imshow("red", red_color);
 
 		std::vector<std::vector<cv::Point> > r_contours;
 		cv::findContours(red_color, r_contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
@@ -234,17 +538,19 @@ void recup_coords() {
 		{
 			std::vector<cv::Point2f> mc_(r_contours.size());
 			std::vector<cv::Point2f> mcreel_(r_contours.size());
-				mc_[1] = cv::Point2f(mu_[1].m10 / mu_[1].m00, mu_[1].m01 / mu_[1].m00);
-				mcreel_[1] = cv::Point2f((mc_[1].x * 648) / recadrage.rows, (mc_[1].y * 1152) / recadrage.cols);
-				laser_y = (int) mcreel_[1].y;
-				laser_x = (int) mcreel_[1].x;
+			mc_[1] = cv::Point2f(mu_[1].m10 / mu_[1].m00, mu_[1].m01 / mu_[1].m00);
+			mcreel_[1] = cv::Point2f((mc_[1].x * 648) / recadrage.rows, (mc_[1].y * 1152) / recadrage.cols);
+			laser_y = (int)mcreel_[1].y;
+			laser_x = (int)mcreel_[1].x;
 		}
 	}
 	else {
 		laser_y = 0;
 		laser_x = 0;
 	}
-
+	//cv::imshow("red", red_color);
+	cout << "\n X = " << laser_x;
+	cout << "  Y = " << laser_y;
 }
 
 //fonction permettant la récupération d'une image et sa conversion en ayant le chemin de l'image à récupérer (argument de fonction nommé path)
@@ -263,18 +569,18 @@ Mat create_mask(Mat img, int l_b, int l_g, int l_r, int h_b, int h_g, int h_r) {
 	return tmp;
 }
 
+//fonction d'animation et de modification de la position des ninjas 
 void update_pos(int fct, ninja *ninja_) {
-	cout << "enter";
-	cvNamedWindow("Game", CV_WINDOW_AUTOSIZE);
-	moveWindow("Game", 500, -32);
-	cout << "enter";
 	int i = 0;
 	int ninjaplan = ninja_->getplan();
 	int ninjadir = ninja_->getdir();
 	int ninjaposx = ninja_->getposx();
 	int ninjaposy = ninja_->getposy();
-	Mat ninjatext = ninja_->gettexture();
+	Mat ninjatext = ninja_->gettexture(); //texture utilisée pour l'affichage (sera donc modifiée pour faire le clignotement)
+	Mat ninjatexttmp = ninja_->gettexture(); //sauvegarde de la texture du ninja de base, ne sera jamais changée
 	Mat ninjamask = ninja_->getmask();
+	Mat ninjamasktmp = ninja_->getmask();
+
 	if (fct == 0) //0 -> sortir un ninja
 	{
 		cout << "sortir";
@@ -286,6 +592,9 @@ void update_pos(int fct, ninja *ninja_) {
 				ninja_->setposx(ninjaposx);
 				Mat fondninja = subrendu(cvRect(ninjaposx, ninjaposy, 46, 48));
 				rendu_hsv.copyTo(subrendu);
+				if (ninjaplan == 6) {
+					ninjatext.copyTo(fondninja, ninjamask);
+				}
 				bgnd6_hsv.copyTo(subrendu, MaskBgnd6);
 				if (ninjaplan == 5) {
 					ninjatext.copyTo(fondninja, ninjamask);
@@ -306,9 +615,9 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-				cout << "affichage";
+				//rectangle(Rendufinal,b, c, colorrect, CV_FILLED, 8,  0);
+				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
-				cout << "postaffichage";
 				waitKey(1);
 				i++;
 			}
@@ -320,6 +629,9 @@ void update_pos(int fct, ninja *ninja_) {
 				ninja_->setposy(ninjaposy);
 				Mat fondninja = subrendu(cvRect(ninjaposx, ninjaposy, 46, 48));
 				rendu_hsv.copyTo(subrendu);
+				if (ninjaplan == 6) {
+					ninjatext.copyTo(fondninja, ninjamask);
+				}
 				bgnd6_hsv.copyTo(subrendu, MaskBgnd6);
 				if (ninjaplan == 5) {
 					ninjatext.copyTo(fondninja, ninjamask);
@@ -340,7 +652,7 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-
+				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
 				waitKey(1);
 				i++;
@@ -353,6 +665,9 @@ void update_pos(int fct, ninja *ninja_) {
 				ninja_->setposx(ninjaposx);
 				Mat fondninja = subrendu(cvRect(ninjaposx, ninjaposy, 46, 48));
 				rendu_hsv.copyTo(subrendu);
+				if (ninjaplan == 6) {
+					ninjatext.copyTo(fondninja, ninjamask);
+				}
 				bgnd6_hsv.copyTo(subrendu, MaskBgnd6);
 				if (ninjaplan == 5) {
 					ninjatext.copyTo(fondninja, ninjamask);
@@ -373,7 +688,7 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-
+				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
 				waitKey(1);
 				i++;
@@ -387,10 +702,25 @@ void update_pos(int fct, ninja *ninja_) {
 		switch (ninjadir) {
 		case 0:  //si le ninja rentre à gauche   (posx--)
 			while (i<30) {
+				if (touche == 1 && (i<6 || (i >= 12 && i < 18) || (i >= 24))) {  //en cours : effectuer le clignotement
+					ninjatext = ninja_t_hsv;
+					ninjamask = Maskninja_t;
+				}
+				else if (touche == 1 && i >= 6 && i < 12) {
+					ninjatext = ninjatexttmp;		//modification de la texture du ninja à afficher en lui appliquant une texture transparente
+					ninjamask = ninjamasktmp;
+				}
+				else if (touche == 1 && i > 18 && i <24) {
+					ninjatext = ninjatexttmp;
+					ninjamask = ninjamasktmp;
+				}
 				ninjaposx--;
 				ninja_->setposx(ninjaposx);
 				Mat fondninja = subrendu(cvRect(ninjaposx, ninjaposy, 46, 48));
 				rendu_hsv.copyTo(subrendu);
+				if (ninjaplan == 6) {
+					ninjatext.copyTo(fondninja, ninjamask);
+				}
 				bgnd6_hsv.copyTo(subrendu, MaskBgnd6);
 				if (ninjaplan == 5) {
 					ninjatext.copyTo(fondninja, ninjamask);
@@ -411,7 +741,8 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-
+				//rectangle(Rendufinal, b, c, colorrect, CV_FILLED, 8, 0);
+				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
 				waitKey(1);
 				i++;
@@ -419,10 +750,25 @@ void update_pos(int fct, ninja *ninja_) {
 			break;
 		case 1: //si le ninja tentre en bas   (posy++)
 			while (i<30) {
+				if (touche == 1 && (i<6 || (i >= 12 && i < 18) || (i >= 24))) {  //en cours : effectuer le clignotement
+					ninjatext = ninja_t_hsv;
+					ninjamask = Maskninja_t;
+				}
+				else if (touche == 1 && i >= 6 && i < 12) {
+					ninjatext = ninjatexttmp;		//modification de la texture du ninja à afficher en lui appliquant une texture transparente
+					ninjamask = ninjamasktmp;
+				}
+				else if (touche == 1 && i > 18 && i <24) {
+					ninjatext = ninjatexttmp;
+					ninjamask = ninjamasktmp;
+				}
 				ninjaposy++;
 				ninja_->setposy(ninjaposy);
 				Mat fondninja = subrendu(cvRect(ninjaposx, ninjaposy, 46, 48));
 				rendu_hsv.copyTo(subrendu);
+				if (ninjaplan == 6) {
+					ninjatext.copyTo(fondninja, ninjamask);
+				}
 				bgnd6_hsv.copyTo(subrendu, MaskBgnd6);
 				if (ninjaplan == 5) {
 					ninjatext.copyTo(fondninja, ninjamask);
@@ -443,7 +789,7 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-
+				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
 				waitKey(1);
 				i++;
@@ -451,10 +797,25 @@ void update_pos(int fct, ninja *ninja_) {
 			break;
 		default: //si le ninja rentre à droite   (posx++)
 			while (i<30) {
+				if (touche == 1 && (i<6 || (i >= 12 && i < 18) || (i >= 24))) {  //en cours : effectuer le clignotement
+					ninjatext = ninja_t_hsv;
+					ninjamask = Maskninja_t;
+				}
+				else if (touche == 1 && i >= 6 && i < 12) {
+					ninjatext = ninjatexttmp;		//modification de la texture du ninja à afficher en lui appliquant une texture transparente
+					ninjamask = ninjamasktmp;
+				}
+				else if (touche == 1 && i > 18 && i <24) {
+					ninjatext = ninjatexttmp;
+					ninjamask = ninjamasktmp;
+				}
 				ninjaposx++;
 				ninja_->setposx(ninjaposx);
 				Mat fondninja = subrendu(cvRect(ninjaposx, ninjaposy, 46, 48));
 				rendu_hsv.copyTo(subrendu);
+				if (ninjaplan == 6) {
+					ninjatext.copyTo(fondninja, ninjamask);
+				}
 				bgnd6_hsv.copyTo(subrendu, MaskBgnd6);
 				if (ninjaplan == 5) {
 					ninjatext.copyTo(fondninja, ninjamask);
@@ -475,7 +836,7 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-
+				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
 				waitKey(1);
 				i++;
@@ -488,7 +849,6 @@ void update_pos(int fct, ninja *ninja_) {
 
 
 /*==========================FONCTIONS CODE GUILLAUME=========================*/
-
 
 //--------------------------------Suppression du bruit------------------------------------------------------
 Mat remove_noise(Mat img, int a, int b, int c, int d)
@@ -508,8 +868,6 @@ Mat remove_noise(Mat img, int a, int b, int c, int d)
 
 	return difference;
 }
-
-
 
 //--------------------------------Detection ds contours des formes puis des coordonnées du centre de gravité de la forme------------------------------------------------------
 Mat contours_(Mat img, Mat diff)
@@ -569,7 +927,6 @@ Mat contours_(Mat img, Mat diff)
 				cpt_norm[i - 1] = cpt_norm[i - 1] + 1;
 			}
 		}
-		std::cout << cpt_norm[i - 1] << "&";
 		if (cpt_norm[i - 1] == 3)
 		{
 			mclasse[0] = mc[i];
