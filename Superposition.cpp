@@ -19,8 +19,8 @@ using namespace cv;
 /*===============================================================================================
 =======================================VARIABLES GLOBALES========================================
 =================================================================================================*/
-Mat fond_hsv, bgnd6_hsv, bgnd5_hsv, bgnd4_hsv, bgnd3_hsv, bgnd2_hsv, rendu_hsv, round_hsv, ninja_hsv, ninja_t_hsv, menu_diff_hard_hsv, menu_diff_medium_hsv, menu_diff_easy_hsv;
-Mat menu_main_hsv, menu_settings_hsv;
+Mat fond_hsv, bgnd6_hsv, bgnd5_hsv, bgnd4_hsv, bgnd3_hsv, bgnd2_hsv, rendu_hsv, round_hsv, ninja_hsv, ninja_t_hsv;
+Mat menu_main_hsv, menu_settings_hsv, menu_diff_hard_hsv, menu_diff_medium_hsv, menu_diff_easy_hsv, menu_score_hsv;
 Mat MaskBgnd6, MaskBgnd5, MaskBgnd4, MaskBgnd3, MaskBgnd2, MaskBgndFond, MaskRound, Maskcarreblack, Maskninja, MaskcroppedD, Maskcroppedtmp, MaskcroppedG, Maskninja_t;
 Mat Rendufinal, subrendu;
 ninja ninja1, ninja2, ninja3, ninja4, ninja5, ninja6, ninja7, ninja8, ninja9;
@@ -35,29 +35,31 @@ Mat remove_noise(Mat img, int a, int b, int c, int d);
 Mat contours_(Mat img, Mat diff);
 void recup_coords();
 
-cv::VideoCapture stream1(0);   //0 is the id of video device.0 if you have only one camera.
+cv::VideoCapture stream1(0);   //0 est l'id de la caméra à utiliser 
 int laser_x, laser_y;
+int nbninja = 0;
 
-Point a(100, 67);  //positionnement de la zone de texte du score
-Point b(95, 40);  //positionnement du haut gauche du rectangle de fond des scores
-Point c(180, 75);  //positionnement du bas droit du rectangle de fond des scores
+Point a(100, 67);  //positionnement de la zone de texte du score en partie
+Point b(590, 243);  //positionnement de la zone de texte du score dens le menu des scores
 Scalar colortext(125, 255, 0);  //couleur du texte des scores
-Scalar colorrect(150, 150, 150);  //couleur du rectangle de fond des scores
 
 int main() {
 	strscore = to_string(score);
 	cvNamedWindow("Game", CV_WINDOW_AUTOSIZE);
-	moveWindow("Game", 500, -32);
+	moveWindow("Game", 500, -32);  //permet de mettre l'écran au centre de l'image (changer la variable 500 en fonction de la résolution)
 	//variables globales :
 	laser_x = 400;
 	laser_y = 400;
+	bool partie = true; //variable de boucle du programme entier (false que si la caméra n'est pas branchée)
 	bool jeu = false; //variable de boucle du jeu
 	bool laser = false; //variable de boucle de récupération des coordonnées laser
 	bool menu = true; //variable de boucle du menu
 	bool settings = false; //variable de boucle des réglages
+	bool menu_score = false; //variable de menu des scores
 	int ninja_actif = 0;
-	int tempo_out = 0,tempo_max=100;
-	int level = 0; //niveau de difficulté : 0=easy   1=medium   2=hard
+	int tempo_out = 0, tempo_max = 100; //temporisation courante et temporisation max de sortie
+	int nbninjamax = 20; //nombre de ninjas courants et nombre maximum de ninjas qui apparaitront au cours d'une partie
+	int level = 1; //niveau de difficulté : 0=easy   1=medium   2=hard
 
 	srand(time(NULL));
 	rand();
@@ -68,7 +70,7 @@ int main() {
 	=========================================CREATION DES TEXTURES ET DES MASQUES===========================================
 	=======================================================================================================================*/
 
-	//copie dans les objets de type IplImage le contenu des images situés à l'adresse indiquée
+	//copie dans les objets de type IplImage le contenu des images situés à l'adresse indiquée et les convertit en hsv
 	rendu_hsv = create_HSV("Textures/bgnd1u.png");
 	fond_hsv = create_HSV("Textures/black_bgnd.png");
 	bgnd2_hsv = create_HSV("Textures/bgnd2.png");
@@ -83,9 +85,11 @@ int main() {
 	menu_diff_hard_hsv = create_HSV("Textures/menu_diff_hard.png");
 	menu_diff_easy_hsv = create_HSV("Textures/menu_diff_easy.png");
 	menu_diff_medium_hsv = create_HSV("Textures/menu_diff_medium.png");
+	menu_score_hsv = create_HSV("Textures/menu_score.png");
 
+	subrendu = fond_hsv(cvRect(64, 36, 1152, 648));  //représente la partie centrale de l'écran sans les bords noirs
 
-	subrendu = fond_hsv(cvRect(64, 36, 1152, 648));
+	//création des textures des ninjas inclinés
 	RotatedRect rect = RotatedRect(Point2f(23, 24), Size2f(46, 48), -60);
 	Mat M, rotatedD, rotatedG;
 	float angle = rect.angle;
@@ -93,10 +97,7 @@ int main() {
 	M = getRotationMatrix2D(rect.center, angle, 1.0);
 	warpAffine(ninja_hsv, rotatedD, M, ninja_hsv.size(), INTER_CUBIC);
 
-	//Création des masques de superposition
-
-
-	//Création des masques en supprimant la couleur rouge (0,255,255 en HSV)
+	//Création des masques de superposition en supprimant la couleur rouge (0,255,255 en HSV)
 	MaskBgndFond = create_mask(fond_hsv, 0, 255, 255, 0, 255, 255);
 	MaskBgnd6 = create_mask(bgnd6_hsv, 0, 255, 255, 0, 255, 255);
 	MaskBgnd5 = create_mask(bgnd5_hsv, 0, 255, 255, 0, 255, 255);
@@ -122,6 +123,11 @@ int main() {
 	====================================FIN DE CREATION DES TEXTURES ET DES MASQUES==========================================
 	=======================================================================================================================*/
 
+
+	/*=======================================================================================================================
+	==================================================CREATION DES NINJAS====================================================
+	=======================================================================================================================*/
+
 	//ninja(posx,posy,plan,etat,dir,texture,mask)
 	//plan : derrière quel plan est le calque
 	//etat : 0 -> rentré     1 -> sorti
@@ -139,86 +145,42 @@ int main() {
 	ninja8 = ninja(270, 232, 5, 0, 1, ninja_hsv, Maskninja);
 	ninja9 = ninja(810, 254, 6, 0, 2, rotatedG, MaskcroppedG);
 
+	/*=======================================================================================================================
+	=============================================FIN DE CREATION DES NINJAS==================================================
+	=======================================================================================================================*/
 
-	if (!stream1.isOpened()) { //check if video device has been initialised
+	if (!stream1.isOpened()) { //vérifie si la caméra est bien branchée et initialisée
 		std::cout << "cannot open camera";
-		jeu = false;
+		partie = false;
 	}
-
 
 	///Partie code en dehors des initialisations
 
-	while(true){
+	while(partie){
 		while (menu) {
+			//affichage du menu principal
 			menu_main_hsv.copyTo(subrendu);
 			round_hsv.copyTo(fond_hsv, MaskRound);
 			cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
 			imshow("Game", Rendufinal);
-			//recup_coords();
-			if (laser_x >= 339 && laser_x <= 812 && laser_y >= 196 && laser_y <= 288) {
+			recup_coords();
+			if (laser_x >= 339 && laser_x <= 812 && laser_y >= 196 && laser_y <= 288) {  //bouton jouer
 				menu = false;
 				jeu = true;
 			}
-			if (laser_x >= 339 && laser_x <= 812 && laser_y >= 343 && laser_y <= 435) {
+			if (laser_x >= 339 && laser_x <= 812 && laser_y >= 343 && laser_y <= 435) {  //bouton paramètres
 				menu = false;
 				settings = true;
 			}
 			waitKey(1);
 		}
 
-
-		int k = 0;
-
-
 		while (settings) {
-			k++;
-
-			if (k == 200) {
-				laser_x = 900;
-				laser_y = 300;
-			}
-			else if (k == 201) {
-				laser_x = 800;
-				laser_y = 800;
-			}
-			else if (k == 400) {
-				laser_x = 900;
-				laser_y = 300;
-			}
-			else if (k == 401) {
-				laser_x = 800;
-				laser_y = 800;
-			}
-			else if (k == 600) {
-				laser_x = 900;
-				laser_y = 300;
-			}
-			else if (k == 800) {
-				laser_x = 300;
-				laser_y = 300;
-			}
-			else if (k == 801) {
-				laser_x = 800;
-				laser_y = 800;
-			}
-			else if (k == 900) {
-				laser_x = 300;
-				laser_y = 300;
-			}
-			else if (k == 910) {
-				laser_x = 800;
-				laser_y = 800;
-			}
-			else if (k == 1000) {
-				laser_x = 150;
-				laser_y = 100;
-			}
-
-			//recup_coords();
-
+			recup_coords();
 			if (laser_x >= 60 && laser_x <= 242 && laser_y >= 50 && laser_y <= 125) {  //si on touche la touche de retour au menu principal
 				settings = false;
 				menu = true;
+
 			}
 			else if (laser_x >= 224 && laser_x <= 319 && laser_y >= 269 && laser_y <= 361) {  //si on touche la touche difficulté -
 				if (level > 0) {  //possible de baisser le niveau que si il est supérieur à facile 
@@ -235,29 +197,36 @@ int main() {
 			
 			if (update_settings == true) {
 				switch (level) {
-				case 0:
-					tempo_max = 100;
+				case 0:  //difficulté facile 
+					tempo_max = 100;  //temporisation de sortie des ninjas
+					nbninjamax = 20;  //nombre maximum de ninjas
+					//affichage de la variante facile du menu de difficulté
 					menu_diff_easy_hsv.copyTo(subrendu);
 					round_hsv.copyTo(fond_hsv, MaskRound);
 					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
 					imshow("Game", Rendufinal);
 					break;
-				case 1:
-					tempo_max = 50;
+				case 1:  //difficulté Normal
+					tempo_max = 50;  //temporisation de sortie des ninjas
+					nbninjamax = 30;  //nombre maximum de ninjas
+					//affichage de la variante normale du menu de difficulté
 					menu_diff_medium_hsv.copyTo(subrendu);
 					round_hsv.copyTo(fond_hsv, MaskRound);
 					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
 					imshow("Game", Rendufinal);
 					break;
-				case 2:
-					tempo_max = 25;
+				case 2:  //difficulté Difficile
+					tempo_max = 25;  //temporisation de sortie des ninjas
+					nbninjamax = 40; //nombre maximum de ninjas
+					//affichage de la variante difficile du menu de difficulté
 					menu_diff_hard_hsv.copyTo(subrendu);
 					round_hsv.copyTo(fond_hsv, MaskRound);
 					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
 					imshow("Game", Rendufinal);
 					break;
-				default:
-					tempo_max = 50;
+				default:  //difficulté par défaut (normale)
+					tempo_max = 50; //temporisation de sortie des ninjas par défaut
+					nbninjamax = 30;  //nombre maximum de ninjas par défaut
 					menu_diff_medium_hsv.copyTo(subrendu);
 					round_hsv.copyTo(fond_hsv, MaskRound);
 					cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
@@ -266,12 +235,8 @@ int main() {
 				}
 				update_settings = false;
 			}
-
-
 			waitKey(1);
-			
 		}
-
 
 		//boucle du jeu qui tourne constamment jusqu'à ce que la variable jeu soit passée à false
 		while (jeu) {
@@ -281,6 +246,7 @@ int main() {
 			rnd = rand() % 9;
 
 			//affichage du ninja correspondant à la valeur randomisée
+
 			switch (rnd) {
 			case 0:
 				update_pos(0, &ninja1);
@@ -324,9 +290,9 @@ int main() {
 				break;
 			}
 
-			//boucle du jeu (coeur du jeu
+			//boucle du jeu (coeur du jeu)
 			while (laser) {
-				//recup_coords();
+				recup_coords();
 				tempo_out++;
 
 				//vérifie si le laser a touché le ninja et gère la rentrée avec clignotement si c'est le cas
@@ -442,7 +408,7 @@ int main() {
 				}
 
 				//si le laser n'a pas touché, la temporisation définit la durée au bout de laquelle le ninja rentrera
-				if (tempo_out == tempo_max) { // 100000000     si algo récup_coords => 100
+				if (tempo_out == tempo_max) {
 					switch (ninja_actif) {
 					case 0:
 						update_pos(1, &ninja1);
@@ -478,6 +444,35 @@ int main() {
 					tempo_out = 0;
 					laser = false;
 				}
+			}
+			if (nbninja == (nbninjamax+1)) { //si le nombre de ninja maximum est atteint, on arrête la partie 
+				menu_score = true;
+				laser = false;
+				jeu = false;
+			}
+			cout << nbninja;
+		}
+		
+		while (menu_score) {
+			recup_coords();
+			menu_score_hsv.copyTo(subrendu);
+			round_hsv.copyTo(fond_hsv, MaskRound);
+			cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
+			putText(Rendufinal, strscore, b, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
+			imshow("Game", Rendufinal);
+			waitKey(1);
+
+			if (laser_x >= 438 && laser_x <= 713 && laser_y >= 365 && laser_y <= 439) { //si le laser touche le bouton Rejouer
+				menu_score = false;
+				score = 0; //réinitialisation du score
+				nbninja = 0; //réinitialisation du nombre de ninjas sortis
+				jeu = true;
+			}
+			else if (laser_x >= 438 && laser_x <= 713 && laser_y >= 476 && laser_y <= 550) { //si le laser touche le bouton Menu Principak
+				menu_score = false;
+				score = 0; //réinitialisation du score
+				nbninja = 0; //réinitialisation du nombre de ninjas sortis
+				menu = true;
 			}
 		}
 	}
@@ -615,7 +610,6 @@ void update_pos(int fct, ninja *ninja_) {
 
 				round_hsv.copyTo(fond_hsv, MaskRound);
 				cvtColor(fond_hsv, Rendufinal, COLOR_HSV2BGR);
-				//rectangle(Rendufinal,b, c, colorrect, CV_FILLED, 8,  0);
 				putText(Rendufinal, strscore, a, FONT_HERSHEY_SIMPLEX, 0.9, colortext, 2, 8, false);
 				imshow("Game", Rendufinal);
 				waitKey(1);
@@ -698,6 +692,7 @@ void update_pos(int fct, ninja *ninja_) {
 	}
 	else  //1 -> rentrer un ninja
 	{
+		nbninja++;
 		cout << "rentrer";
 		switch (ninjadir) {
 		case 0:  //si le ninja rentre à gauche   (posx--)
