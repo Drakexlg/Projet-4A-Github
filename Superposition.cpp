@@ -46,7 +46,7 @@ Scalar colortext(125, 255, 0);  //couleur du texte des scores
 int main() {
 	strscore = to_string(score);
 	cvNamedWindow("Game", CV_WINDOW_AUTOSIZE);
-	moveWindow("Game", 500, -32);  //permet de mettre l'écran au centre de l'image (changer la variable 500 en fonction de la résolution)
+	moveWindow("Game", 1900, -27);  //permet de mettre l'écran au centre de l'image (changer la variable 500 en fonction de la résolution)  //-32
 	//variables globales :
 	laser_x = 400;
 	laser_y = 400;
@@ -64,8 +64,6 @@ int main() {
 	srand(time(NULL));
 	rand();
 
-	bool update_settings = true;
-
 	/*======================================================================================================================
 	=========================================CREATION DES TEXTURES ET DES MASQUES===========================================
 	=======================================================================================================================*/
@@ -81,11 +79,11 @@ int main() {
 	round_hsv = create_HSV("Textures/ronds.png");
 	ninja_hsv = create_HSV("Textures/ninja.png");
 	ninja_t_hsv = create_HSV("Textures/ninja_t.png");
-	menu_main_hsv = create_HSV("Textures/menu.png");
-	menu_diff_hard_hsv = create_HSV("Textures/menu_diff_hard.png");
-	menu_diff_easy_hsv = create_HSV("Textures/menu_diff_easy.png");
-	menu_diff_medium_hsv = create_HSV("Textures/menu_diff_medium.png");
-	menu_score_hsv = create_HSV("Textures/menu_score.png");
+	menu_main_hsv = create_HSV("Textures/menu1.png");
+	menu_diff_hard_hsv = create_HSV("Textures/menu_diff_hard1.png");
+	menu_diff_easy_hsv = create_HSV("Textures/menu_diff_easy1.png");
+	menu_diff_medium_hsv = create_HSV("Textures/menu_diff_medium1.png");
+	menu_score_hsv = create_HSV("Textures/menu_score1.png");
 
 	subrendu = fond_hsv(cvRect(64, 36, 1152, 648));  //représente la partie centrale de l'écran sans les bords noirs
 
@@ -172,6 +170,7 @@ int main() {
 				menu = false;
 				settings = true;
 			}
+			cout << "pm";
 			waitKey(1);
 		}
 
@@ -184,19 +183,17 @@ int main() {
 			}
 			else if (laser_x >= 224 && laser_x <= 319 && laser_y >= 269 && laser_y <= 361) {  //si on touche la touche difficulté -
 				if (level > 0) {  //possible de baisser le niveau que si il est supérieur à facile 
-					update_settings = true;
 					level--;
 				}
 			}
 			else if (laser_x >= 850 && laser_x <= 945 && laser_y >= 269 && laser_y <= 361) {  //si on touche la touche difficulté +
 				if (level < 2) {  //possible d'augmenter le niveau que si il est inférieur à difficile
-					update_settings = true;
 					level++;
 				}
 			}
 			
-			if (update_settings == true) {
-				switch (level) {
+
+			switch (level) {
 				case 0:  //difficulté facile 
 					tempo_max = 100;  //temporisation de sortie des ninjas
 					nbninjamax = 20;  //nombre maximum de ninjas
@@ -233,8 +230,6 @@ int main() {
 					imshow("Game", Rendufinal);
 					break;
 				}
-				update_settings = false;
-			}
 			waitKey(1);
 		}
 
@@ -323,7 +318,7 @@ int main() {
 					break;
 				case 2:
 					if (laser_x >= ninja3.getposx() && laser_x <= (ninja3.getposx() + 46) && laser_y >= ninja3.getposy() && laser_y <= (ninja3.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -335,7 +330,7 @@ int main() {
 					break;
 				case 3:
 					if (laser_x >= ninja4.getposx() && laser_x <= (ninja4.getposx() + 46) && laser_y >= ninja4.getposy() && laser_y <= (ninja4.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -347,7 +342,7 @@ int main() {
 					break;
 				case 4:
 					if (laser_x >= ninja5.getposx() && laser_x <= (ninja5.getposx() + 46) && laser_y >= ninja5.getposy() && laser_y <= (ninja5.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -359,7 +354,7 @@ int main() {
 					break;
 				case 5:
 					if (laser_x >= ninja6.getposx() && laser_x <= (ninja6.getposx() + 46) && laser_y >= ninja6.getposy() && laser_y <= (ninja6.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -371,7 +366,7 @@ int main() {
 					break;
 				case 6:
 					if (laser_x >= ninja7.getposx() && laser_x <= (ninja7.getposx() + 46) && laser_y >= ninja7.getposy() && laser_y <= (ninja7.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -383,7 +378,7 @@ int main() {
 					break;
 				case 7:
 					if (laser_x >= ninja8.getposx() && laser_x <= (ninja8.getposx() + 46) && laser_y >= ninja8.getposy() && laser_y <= (ninja8.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -395,7 +390,7 @@ int main() {
 					break;
 				case 8:
 					if (laser_x >= ninja9.getposx() && laser_x <= (ninja9.getposx() + 46) && laser_y >= ninja9.getposy() && laser_y <= (ninja9.getposy() + 48)) {
-						score++;
+						score += 100;
 						strscore = to_string(score);
 						touche = 1;
 						cout << "====================TOUCHE===================";
@@ -488,10 +483,11 @@ void recup_coords() {
 	Mat recadrage;
 	Mat red_color;
 	stream1.read(cameraFrame);
-	mask_ = create_mask(cameraFrame, 200, 0, 200, 255, 100, 255);  // appel à la fonction mask qui renvoie les parties de l'image dont les couleurs sont dans la plage BGR indiqué
+	imshow("webcam", cameraFrame);
+	mask_ = create_mask(cameraFrame, 200, 0, 200, 255, 180, 255);  // appel à la fonction mask qui renvoie les parties de l'image dont les couleurs sont dans la plage BGR indiqué
 	mask_ = remove_noise(mask_, 5, 6, 5, 5);
 	std::vector<std::vector<cv::Point> > contours;
-	//imshow("cam", cameraFrame);
+	imshow("mask", mask_);
 	cv::findContours(mask_, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 	/// Get the moments
 	//verification de la presence de 4 points distincts dans la vidéo capturé
@@ -508,13 +504,17 @@ void recup_coords() {
 	if (cpt == 4) {
 		// utilisation de la fontion contours_ qui renvoi la partie de l'image correspondant à l'écran de jeu
 		recadrage = contours_(cameraFrame, mask_);
-		//cv::imshow("recadrage", recadrage);
+		//imshow("recadrage", recadrage);
 
 
-		red_color = create_mask(recadrage, 100, 100, 165, 150, 150, 255);
+		//red_color = create_mask(recadrage, 100, 100, 165, 150, 150, 255);
+		red_color = create_mask(recadrage, 40, 130, 165, 100, 170, 255);
 		red_color = remove_noise(red_color, 5, 1, 1, 5); ///a modifier pour s'ajuster a la realité.
+	//	red_color = remove_noise(red_color, 7, 2, 7, 5); ///a modifier pour s'ajuster a la realité.
+	//	dilate(red_color, red_color, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7))); //reaugmente la taille des zones a reccuperer
+
 		//erode(red_color, red_color, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3)));
-		//cv::imshow("red", red_color);
+		imshow("red", red_color);
 
 		std::vector<std::vector<cv::Point> > r_contours;
 		cv::findContours(red_color, r_contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
@@ -534,7 +534,8 @@ void recup_coords() {
 			std::vector<cv::Point2f> mc_(r_contours.size());
 			std::vector<cv::Point2f> mcreel_(r_contours.size());
 			mc_[1] = cv::Point2f(mu_[1].m10 / mu_[1].m00, mu_[1].m01 / mu_[1].m00);
-			mcreel_[1] = cv::Point2f((mc_[1].x * 648) / recadrage.rows, (mc_[1].y * 1152) / recadrage.cols);
+			//mcreel_[1] = cv::Point2f((mc_[1].x * 648) / recadrage.rows, (mc_[1].y * 1152) / recadrage.cols);
+			mcreel_[1] = cv::Point2f((mc_[1].x * 1152) / recadrage.cols, (mc_[1].y * 648) / recadrage.rows);
 			laser_y = (int)mcreel_[1].y;
 			laser_x = (int)mcreel_[1].x;
 		}
@@ -543,7 +544,7 @@ void recup_coords() {
 		laser_y = 0;
 		laser_x = 0;
 	}
-	//cv::imshow("red", red_color);
+//	cv::imshow("red", red_color);
 	cout << "\n X = " << laser_x;
 	cout << "  Y = " << laser_y;
 }
